@@ -1,9 +1,13 @@
-# Resolución de Laberintos — Fuerza Bruta
+# Resolución de Laberintos — Backtracking vs. Divide y Vencerás
 
 **Curso:** Análisis y Diseño de Algoritmos — 2026-2  
 **Integrantes:** Alejandro Bermudez, Juan David Mosquera, Santiago Restrepo  
 **Entrega:** Entrega 1 — Análisis de Complejidad y Recursividad  
 **Caso de uso elegido:** 3.3 Juego o Puzzle (Laberinto)  
+
+**Archivos:**
+- [`laberinto_backtracking.py`](laberinto_backtracking.py): solución por backtracking (búsqueda exhaustiva recursiva).
+- [`laberinto_divide_y_venceras.py`](laberinto_divide_y_venceras.py): solución por divide y vencerás.
 
 ---
 
@@ -20,8 +24,8 @@ El problema consiste en encontrar un camino transitable desde una casilla de ini
 
 ### 1.2 Salidas
 - **Confirmación:** Booleano (`True` si se encontró solución, `False` en caso contrario).
-- **Tablero resuelto:** La misma matriz visualizada en consola donde el camino recorrido se reemplaza con `🟩`.
-- **Métricas:** Tiempo de ejecución en segundos y cantidad total de pasos dados.
+- **Tablero resuelto:** La misma matriz donde el camino recorrido se reemplaza con `🟩`. Solo se imprime en consola si el tablero tiene 400 casillas o menos; los tableros grandes se omiten.
+- **Métricas:** Tiempo de ejecución en segundos, cantidad de pasos del camino final y cantidad de casillas visitadas (incluyendo retrocesos).
 
 ### 1.3 Restricciones
 - No salirse de los límites de la matriz ($0 \le x < N$ y $0 \le y < M$).
@@ -30,36 +34,61 @@ El problema consiste en encontrar un camino transitable desde una casilla de ini
 
 ---
 
-## 2. Solución por Fuerza Bruta (Recursividad)
+## 2. Solución por Backtracking (Recursividad)
 
-La solución implementada en [`laberinto.py`](laberinto.py) utiliza una **búsqueda exhaustiva recursiva**:
+Implementada en [`laberinto_backtracking.py`](laberinto_backtracking.py). Sigue el esquema **elegir → explorar → deshacer**:
 
-1. **Caso base de éxito:** Si la posición actual $(x, y)$ coincide con la meta $(x_{fin}, y_{fin})$, se marca la casilla con `🟩`, se guarda en la lista de pasos y se retorna `True`.
-2. **Validaciones:** Si la posición excede los bordes o no es una casilla libre (`!= '⬜'`), la rama se descarta retornando `False`.
-3. **Exploración ciega (orden fijo):** Se marca temporalmente la casilla como parte del camino (`🟩`) y se exploran recursivamente las 4 direcciones posibles en orden predeterminado:
+1. **Validación:** Si la casilla está fuera de los bordes o no es `⬜`, la rama se descarta retornando `False`.
+2. **Elegir:** Se marca la casilla como parte del camino (`🟩`) y se agrega a la lista de pasos.
+3. **Caso base de éxito:** Si la posición actual coincide con la meta, se retorna `True`.
+4. **Explorar (orden fijo):** Se prueban recursivamente las 4 direcciones en este orden:
    - Abajo $(x+1, y)$
    - Derecha $(x, y+1)$
    - Arriba $(x-1, y)$
    - Izquierda $(x, y-1)$
-4. **Desmarcado:** Si ninguna de las 4 direcciones conduce a la salida, se desmarca la casilla devolviéndola a `⬜`, se remueve del camino y se retorna `False`.
+5. **Deshacer (backtrack):** Si ninguna dirección conduce a la salida, la casilla vuelve a `⬜`, se remueve del camino y se retorna `False`.
+
+Como la casilla se **desmarca** al retroceder, el algoritmo puede volver a pasar por ella desde otro camino. Esto es lo que lo hace exhaustivo (y exponencial en zonas abiertas).
 
 ---
 
-## 3. Casos de Prueba
+## 3. Solución por Divide y Vencerás
 
-Se definieron 6 escenarios de prueba en [`laberinto.py`](laberinto.py), agrupados en dos familias:
+Implementada en [`laberinto_divide_y_venceras.py`](laberinto_divide_y_venceras.py). El problema se define sobre una **región rectangular** del tablero:
 
-**Casos "peine" (escala progresiva, caso menos favorable):** cada columna par es un callejón sin salida abierto de arriba a abajo, y todas las columnas solo se conectan entre sí por la fila superior. Como la exploración prueba `abajo` primero, el algoritmo debe recorrer y deshacer cada callejón completo antes de encontrar el camino real (por la fila 0 hasta la última columna), forzando trabajo proporcional al tamaño del tablero.
+1. **Caso base:** Si la región tiene 16 casillas o menos (`UMBRAL`), se resuelve directamente con una búsqueda en anchura (BFS) restringida a esa región.
+2. **Dividir:** La región se parte en dos mitades por su lado más largo.
+3. **Vencer:** Si el inicio y la meta quedan en mitades distintas, el camino debe cruzar la línea de corte por algún par de casillas vecinas libres (A, B). Para cada par se resuelve recursivamente *inicio → A* en la primera mitad y *B → meta* en la segunda.
+4. **Combinar:** Se concatenan los dos caminos parciales. Se devuelve el primer par que funcione.
+5. **Respaldo:** Si el camino necesita cruzar la línea de corte más de una vez (por ejemplo, en laberintos en serpiente), ninguna combinación simple lo encuentra. En ese caso se resuelve directamente sobre toda la región con BFS. El script reporta cuántas veces se usó este respaldo.
 
-| Caso | Dimensiones | Coordenadas Inicio | Coordenadas Fin |
-|---|---|---|---|
-| **Pequeño** | $5 \times 5$ | `(0, 0)` | `(4, 4)` |
-| **Mediano** | $9 \times 9$ | `(0, 0)` | `(8, 8)` |
-| **Grande** | $14 \times 15$ | `(0, 0)` | `(13, 14)` |
+---
 
-**Casos rectangulares ($N \neq M$):** laberintos "perfectos" (un único camino posible entre dos casillas cualesquiera, generados con DFS) sobre tableros no cuadrados, garantizando que **todas** las casillas libres sean alcanzables desde el inicio.
+## 4. Casos de Prueba
 
-| Caso | Dimensiones | Coordenadas Inicio | Coordenadas Fin |
+Ambos scripts usan **los mismos 6 casos** (más un caso extremo opcional), en dos familias.
+
+### 4.1 Casos "trampa" (escala extrema)
+
+Desde el inicio `(0, 0)`, la primera dirección probada es *abajo*, que entra a una **zona abierta de $k \times k$ sin salida**. Como el backtracking desmarca las casillas al retroceder, debe recorrer **todos los caminos posibles** dentro de esa zona antes de probar *derecha*, que es el pasillo real hacia la meta (borde superior y última columna).
+
+- **$k$ controla el tiempo:** la cantidad de caminos crece de forma explosiva con $k$.
+- **Las dimensiones del tablero** controlan el tamaño en memoria y la profundidad de la recursión (el pasillo mide $N + M - 2$ casillas).
+
+| Caso | Dimensiones | Casillas | Zona trampa | Inicio | Fin |
+|---|---|---|---|---|---|
+| **Pequeño** | $5 \times 5$ | 25 | — | `(0, 0)` | `(4, 4)` |
+| **Mediano** | $1.000 \times 1.000$ | 1.000.000 | $5 \times 5$ | `(0, 0)` | `(999, 999)` |
+| **Grande** | $3.000 \times 3.000$ | 9.000.000 | $6 \times 6$ | `(0, 0)` | `(2999, 2999)` |
+| **Extremo** *(opcional)* | $5.000 \times 5.000$ | 25.000.000 | $7 \times 7$ | `(0, 0)` | `(4999, 4999)` |
+
+El caso **Extremo** está desactivado por defecto en el backtracking (`INCLUIR_EXTREMO = False`) porque tardaría horas. En divide y vencerás está activado.
+
+### 4.2 Casos rectangulares ($N \neq M$)
+
+Laberintos definidos manualmente, con un único camino posible entre inicio y meta, sobre tableros no cuadrados.
+
+| Caso | Dimensiones | Inicio | Fin |
 |---|---|---|---|
 | **Rectangular ancho** | $3 \times 15$ | `(0, 0)` | `(2, 14)` |
 | **Rectangular alto** | $15 \times 3$ | `(0, 0)` | `(14, 2)` |
@@ -67,34 +96,52 @@ Se definieron 6 escenarios de prueba en [`laberinto.py`](laberinto.py), agrupado
 
 ---
 
-## 4. Análisis de Complejidad
+## 5. Análisis de Complejidad
 
-### 4.1 Complejidad Temporal: $O(4^{N \times M})$
-- **Justificación:** En el peor caso (un laberinto abierto sin paredes donde la meta está al final o no existe camino), desde cada una de las casillas transitables se pueden intentar hasta 4 ramificaciones recursivas. El árbol de recursión tiene un factor de ramificación de 4 y una profundidad máxima acotada por el número total de casillas $N \times M$, resultando en un costo exponencial en el peor escenario.
+### 5.1 Backtracking
 
-### 4.2 Complejidad Espacial: $O(N \times M)$
-- **Justificación:** La memoria auxiliar está dominada por la pila de llamadas del sistema (*call stack*). En el peor escenario de recursión simple, la profundidad de la pila alcanzará a lo sumo el número de casillas transitables del laberinto ($N \times M$).
+**Tiempo: $O(4^{N \times M})$ en el peor caso.**
+- En una zona abierta, desde cada casilla se pueden intentar hasta 4 ramificaciones, y la profundidad está acotada por el número de casillas. Como las casillas se desmarcan al retroceder, se exploran todos los caminos simples posibles.
+- En los casos trampa, el costo está dominado por la zona $k \times k$: medimos 155.745 casillas visitadas con $k = 5$ y 31.817.177 con $k = 6$, es decir, **aproximadamente 200 veces más por cada unidad que aumenta $k$**.
 
----
+**Espacio: $O(N \times M)$.**
+- La pila de llamadas puede llegar a tener tantos niveles como casillas transitables. En los casos trampa la profundidad es la longitud del camino (1.999 y 5.999 niveles), lo que obliga a subir el límite de recursión de Python y ejecutar en un hilo con pila grande.
 
-## 5. Medición Empírica de Tiempos
+### 5.2 Divide y vencerás
 
-Resultados obtenidos ejecutando el script [`laberinto.py`](laberinto.py) sobre los casos "peine" (los rectangulares no se incluyen aquí por ser aleatorios y no tener una escala progresiva comparable):
-
-| Tamaño | Dimensiones | Pasos Solución | Tiempo de Ejecución (s) |
-|---|---|---|---|
-| Pequeño | $5 \times 5$ | 9 pasos | ~0.000026 s |
-| Mediano | $9 \times 9$ | 17 pasos | ~0.000041 s |
-| Grande | $14 \times 15$ | 28 pasos | ~0.000093 s |
-
-> **Nota:** A diferencia de un laberinto abierto, en el caso "peine" el algoritmo sí debe agotar cada callejón sin salida (bajar hasta el fondo, fallar, deshacer el camino) antes de continuar al siguiente, por lo que el tiempo crece de forma consistente con el tamaño del tablero.
+- **Caso base:** BFS sobre una región de a lo sumo 16 casillas, costo constante.
+- **Recurrencia:** cada nivel parte la región en dos mitades y revisa los pares de casillas de la línea de corte. En los casos trampa el primer par probado (el pasillo superior) es el correcto, así que la recursión baja por una sola rama.
+- **Resultado medido:** las casillas visitadas son del orden de la **longitud del camino** (2.001 para el mediano, 6.000 para el grande, 10.003 para el extremo), sin importar el tamaño de la zona trampa.
+- **Peor caso:** si muchos pares de la línea de corte fallan, o si se activa el respaldo, el costo crece (el respaldo recorre toda la región con BFS). No se demuestra aquí una cota ajustada para el peor caso; la comparación es empírica.
+- **Limitación:** al resolver cada mitad por separado, un camino que cruza la línea de corte varias veces solo se encuentra mediante el respaldo. El resultado siempre es correcto, pero en laberintos en serpiente la división aporta menos.
 
 ---
 
-## 6. Instrucciones de Ejecución
+## 6. Medición Empírica de Tiempos
 
-Para ejecutar el programa directamente desde la terminal:
+Medidos en una sola ejecución (los tiempos varían según el equipo).
+
+| Caso | Dimensiones | Zona trampa | Backtracking: tiempo | Backtracking: casillas visitadas | Divide y vencerás: tiempo | Divide y vencerás: casillas visitadas |
+|---|---|---|---|---|---|---|
+| Pequeño | $5 \times 5$ | — | ~0.00003 s | 17 | ~0.00009 s | 24 |
+| Mediano | $1.000 \times 1.000$ | $5 \times 5$ | ~0.23 s | 155.745 | ~0.16 s | 2.001 |
+| Grande | $3.000 \times 3.000$ | $6 \times 6$ | **~45 s** | 31.817.177 | ~0.03 s | 6.000 |
+| Extremo | $5.000 \times 5.000$ | $7 \times 7$ | **~2,5 horas (estimado, no ejecutado)** | ~6.500 millones (estimado) | ~0.04 s | 10.003 |
+
+> **Notas:**
+> - El tiempo del mediano en divide y vencerás (~0.16 s) incluye trabajo fijo de Python sobre un tablero de un millón de casillas. Lo relevante es la columna de casillas visitadas: 2.001 contra 155.745.
+> - La estimación del caso extremo en backtracking extrapola el factor de ~200 que se midió entre $k = 5$ y $k = 6$. No fue ejecutado.
+> - En los casos pequeños y en los rectangulares (todos de menos de 50 casillas de camino) ambos algoritmos son instantáneos. La diferencia solo aparece cuando hay una zona abierta grande que explorar.
+
+---
+
+## 7. Instrucciones de Ejecución
 
 ```bash
-python laberinto.py
+python laberinto_backtracking.py
+python laberinto_divide_y_venceras.py
 ```
+
+- El backtracking tarda unos 45 segundos por el caso Grande. Para añadir el caso Extremo, cambia `INCLUIR_EXTREMO = True` (no recomendado: horas de ejecución).
+- Los tableros de 5.000 × 5.000 usan cientos de MB de memoria. Si tu equipo tiene poca RAM, desactiva `INCLUIR_EXTREMO` en `laberinto_divide_y_venceras.py`.
+- Los scripts suben el límite de recursión y ejecutan en un hilo con 512 MB de pila. Si tu sistema no lo permite, reduce `threading.stack_size` o las dimensiones.
