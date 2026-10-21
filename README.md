@@ -1,4 +1,4 @@
-# Resolución de Laberintos — Backtracking vs. Divide y Vencerás
+# Resolución de Laberintos — Fuerza Bruta vs. Backtracking vs. Divide y Vencerás
 
 **Curso:** Análisis y Diseño de Algoritmos — 2026-2  
 **Integrantes:** Alejandro Bermudez, Juan David Mosquera, Santiago Restrepo  
@@ -6,6 +6,7 @@
 **Caso de uso elegido:** 3.3 Juego o Puzzle (Laberinto)  
 
 **Archivos:**
+- [`laberinto_fuerza_bruta.py`](laberinto_fuerza_bruta.py): solución por fuerza bruta (búsqueda exhaustiva recursiva, código original).
 - [`laberinto_backtracking.py`](laberinto_backtracking.py): solución por backtracking (búsqueda exhaustiva recursiva).
 - [`laberinto_divide_y_venceras.py`](laberinto_divide_y_venceras.py): solución por divide y vencerás.
 
@@ -34,7 +35,20 @@ El problema consiste en encontrar un camino transitable desde una casilla de ini
 
 ---
 
-## 2. Solución por Backtracking (Recursividad)
+## 2. Solución por Fuerza Bruta (Recursividad)
+
+Implementada en [`laberinto_fuerza_bruta.py`](laberinto_fuerza_bruta.py) (es el código original del proyecto, con tableros sobredimensionados y un contador de casillas visitadas). Realiza una **búsqueda exhaustiva recursiva**:
+
+1. **Caso base de éxito:** Si la posición actual $(x, y)$ coincide con la meta, se marca la casilla con `🟩`, se guarda en la lista de pasos y se retorna `True`.
+2. **Validaciones:** Si la posición excede los bordes o no es una casilla libre (`!= '⬜'`), la rama se descarta retornando `False`.
+3. **Exploración ciega (orden fijo):** Se marca temporalmente la casilla como parte del camino (`🟩`) y se exploran recursivamente las 4 direcciones en orden predeterminado: abajo, derecha, arriba, izquierda.
+4. **Desmarcado:** Si ninguna dirección conduce a la salida, se desmarca la casilla devolviéndola a `⬜`, se remueve del camino y se retorna `False`.
+
+> **Relación con la sección 3:** el algoritmo de la versión de backtracking es **el mismo** (mismo orden de exploración, misma casilla desmarcada al retroceder). Lo único que cambia es la organización del código: validación en `es_valida()`, bucle sobre `DIRECCIONES` y constantes en lugar de emojis repetidos. Por eso ambas visitan exactamente la misma cantidad de casillas en todos los casos.
+
+---
+
+## 3. Solución por Backtracking (Recursividad)
 
 Implementada en [`laberinto_backtracking.py`](laberinto_backtracking.py). Sigue el esquema **elegir → explorar → deshacer**:
 
@@ -52,7 +66,7 @@ Como la casilla se **desmarca** al retroceder, el algoritmo puede volver a pasar
 
 ---
 
-## 3. Solución por Divide y Vencerás
+## 4. Solución por Divide y Vencerás
 
 Implementada en [`laberinto_divide_y_venceras.py`](laberinto_divide_y_venceras.py). El problema se define sobre una **región rectangular** del tablero:
 
@@ -64,11 +78,11 @@ Implementada en [`laberinto_divide_y_venceras.py`](laberinto_divide_y_venceras.p
 
 ---
 
-## 4. Casos de Prueba
+## 5. Casos de Prueba
 
-Ambos scripts usan **los mismos 6 casos** (más un caso extremo opcional), en dos familias.
+Los tres scripts usan **los mismos 6 casos** (más un caso extremo opcional), en dos familias.
 
-### 4.1 Casos "trampa" (escala extrema)
+### 5.1 Casos "trampa" (escala extrema)
 
 Desde el inicio `(0, 0)`, la primera dirección probada es *abajo*, que entra a una **zona abierta de $k \times k$ sin salida**. Como el backtracking desmarca las casillas al retroceder, debe recorrer **todos los caminos posibles** dentro de esa zona antes de probar *derecha*, que es el pasillo real hacia la meta (borde superior y última columna).
 
@@ -82,9 +96,9 @@ Desde el inicio `(0, 0)`, la primera dirección probada es *abajo*, que entra a 
 | **Grande** | $3.000 \times 3.000$ | 9.000.000 | $6 \times 6$ | `(0, 0)` | `(2999, 2999)` |
 | **Extremo** *(opcional)* | $5.000 \times 5.000$ | 25.000.000 | $7 \times 7$ | `(0, 0)` | `(4999, 4999)` |
 
-El caso **Extremo** está desactivado por defecto en el backtracking (`INCLUIR_EXTREMO = False`) porque tardaría horas. En divide y vencerás está activado.
+El caso **Extremo** está desactivado por defecto en fuerza bruta y backtracking (`INCLUIR_EXTREMO = False`) porque tardaría horas. En divide y vencerás está activado.
 
-### 4.2 Casos rectangulares ($N \neq M$)
+### 5.2 Casos rectangulares ($N \neq M$)
 
 Laberintos definidos manualmente, con un único camino posible entre inicio y meta, sobre tableros no cuadrados.
 
@@ -96,9 +110,11 @@ Laberintos definidos manualmente, con un único camino posible entre inicio y me
 
 ---
 
-## 5. Análisis de Complejidad
+## 6. Análisis de Complejidad
 
-### 5.1 Backtracking
+### 6.1 Fuerza bruta y backtracking
+
+Ambas versiones comparten algoritmo, así que tienen la misma complejidad.
 
 **Tiempo: $O(4^{N \times M})$ en el peor caso.**
 - En una zona abierta, desde cada casilla se pueden intentar hasta 4 ramificaciones, y la profundidad está acotada por el número de casillas. Como las casillas se desmarcan al retroceder, se exploran todos los caminos simples posibles.
@@ -107,7 +123,7 @@ Laberintos definidos manualmente, con un único camino posible entre inicio y me
 **Espacio: $O(N \times M)$.**
 - La pila de llamadas puede llegar a tener tantos niveles como casillas transitables. En los casos trampa la profundidad es la longitud del camino (1.999 y 5.999 niveles), lo que obliga a subir el límite de recursión de Python y ejecutar en un hilo con pila grande.
 
-### 5.2 Divide y vencerás
+### 6.2 Divide y vencerás
 
 - **Caso base:** BFS sobre una región de a lo sumo 16 casillas, costo constante.
 - **Recurrencia:** cada nivel parte la región en dos mitades y revisa los pares de casillas de la línea de corte. En los casos trampa el primer par probado (el pasillo superior) es el correcto, así que la recursión baja por una sola rama.
@@ -117,27 +133,36 @@ Laberintos definidos manualmente, con un único camino posible entre inicio y me
 
 ---
 
-## 6. Medición Empírica de Tiempos
+## 7. Medición Empírica de Tiempos
 
 Medidos en una sola ejecución (los tiempos varían según el equipo).
 
-| Caso | Dimensiones | Zona trampa | Backtracking: tiempo | Backtracking: casillas visitadas | Divide y vencerás: tiempo | Divide y vencerás: casillas visitadas |
-|---|---|---|---|---|---|---|
-| Pequeño | $5 \times 5$ | — | ~0.00003 s | 17 | ~0.00009 s | 24 |
-| Mediano | $1.000 \times 1.000$ | $5 \times 5$ | ~0.23 s | 155.745 | ~0.16 s | 2.001 |
-| Grande | $3.000 \times 3.000$ | $6 \times 6$ | **~45 s** | 31.817.177 | ~0.03 s | 6.000 |
-| Extremo | $5.000 \times 5.000$ | $7 \times 7$ | **~2,5 horas (estimado, no ejecutado)** | ~6.500 millones (estimado) | ~0.04 s | 10.003 |
+| Caso | Dimensiones | Zona trampa | Fuerza bruta: tiempo | Backtracking: tiempo | Divide y vencerás: tiempo | Casillas visitadas (FB = BT) | Casillas visitadas (DV) |
+|---|---|---|---|---|---|---|---|
+| Pequeño | $5 \times 5$ | — | ~0.00002 s | ~0.00003 s | ~0.00009 s | 17 | 24 |
+| Mediano | $1.000 \times 1.000$ | $5 \times 5$ | ~0.20 s | ~0.23 s | ~0.16 s | 155.745 | 2.001 |
+| Grande | $3.000 \times 3.000$ | $6 \times 6$ | **~32 s** | **~45 s** | ~0.03 s | 31.817.177 | 6.000 |
+| Extremo | $5.000 \times 5.000$ | $7 \times 7$ | **~2,5 horas (estimado, no ejecutado)** | **~2,5 horas (estimado, no ejecutado)** | ~0.04 s | ~6.500 millones (estimado) | 10.003 |
 
 > **Notas:**
 > - El tiempo del mediano en divide y vencerás (~0.16 s) incluye trabajo fijo de Python sobre un tablero de un millón de casillas. Lo relevante es la columna de casillas visitadas: 2.001 contra 155.745.
 > - La estimación del caso extremo en backtracking extrapola el factor de ~200 que se midió entre $k = 5$ y $k = 6$. No fue ejecutado.
+> - Fuerza bruta y backtracking visitan **exactamente las mismas casillas**; la diferencia de tiempo entre ellas (32 s contra 45 s en el caso Grande) viene de la variación entre ejecuciones y de las llamadas extra de la versión refactorizada, no de una mejora algorítmica.
 > - En los casos pequeños y en los rectangulares (todos de menos de 50 casillas de camino) ambos algoritmos son instantáneos. La diferencia solo aparece cuando hay una zona abierta grande que explorar.
 
 ---
 
-## 7. Instrucciones de Ejecución
+## 8. Instrucciones de Ejecución
 
 ```bash
+python laberinto_fuerza_bruta.py
+python laberinto_backtracking.py
+python laberinto_divide_y_venceras.py
+```
+
+- Fuerza bruta y backtracking tardan entre 30 y 45 segundos por el caso Grande. Para añadir el caso Extremo, cambia `INCLUIR_EXTREMO = True` (no recomendado: horas de ejecución).
+- Los tableros de 5.000 × 5.000 usan cientos de MB de memoria. Si tu equipo tiene poca RAM, desactiva `INCLUIR_EXTREMO` en `laberinto_divide_y_venceras.py`.
+- Los tres scripts suben el límite de recursión y ejecutan en un hilo con 512 MB de pila. Si tu sistema no lo permite, reduce `threading.stack_size` o las dimensiones.
 python laberinto_backtracking.py
 python laberinto_divide_y_venceras.py
 ```
