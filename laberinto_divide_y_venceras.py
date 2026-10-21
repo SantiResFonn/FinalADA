@@ -1,3 +1,5 @@
+import sys
+import threading
 import time
 from collections import deque
 
@@ -171,21 +173,33 @@ def camino_valido(tablero, camino, inicio, fin):
 # Datos de prueba
 # ---------------------------------------------------------------------------
 
-def crear_laberinto_trampa(k):
+def crear_laberinto_trampa(k, filas=None, cols=None):
     """
-    Laberinto con una zona abierta k x k sin salida a la que se entra primero
-    desde el inicio (muy costosa para backtracking puro) y un pasillo
-    que lleva a la meta por la parte superior y la última columna.
+    Mismo laberinto 'trampa' que usa la versión de backtracking.
+
+    Desde el inicio (0,0) la primera dirección probada es 'abajo', que entra
+    a una zona abierta de k x k sin salida. Como el algoritmo desmarca las
+    casillas al retroceder, debe recorrer TODOS los caminos posibles dentro
+    de esa zona (crecimiento explosivo) antes de probar 'derecha', que es
+    el pasillo que realmente lleva a la meta.
+
+    k      -> tamaño de la zona trampa (controla el TIEMPO, es exponencial)
+    filas  -> alto total del tablero (mínimo k + 2)
+    cols   -> ancho total del tablero (mínimo k + 4)
+    El resto del tablero son paredes: solo agrandan las dimensiones y
+    alargan el pasillo (borde superior + última columna) hasta la meta.
     """
-    filas = k + 2
-    cols = k + 4
+    filas = max(filas or 0, k + 2)
+    cols = max(cols or 0, k + 4)
     t = [[PARED] * cols for _ in range(filas)]
 
+    # Pasillo superior y bajada por la última columna hasta la meta
     for c in range(cols):
         t[0][c] = LIBRE
     for f in range(filas):
         t[f][cols - 1] = LIBRE
 
+    # Entrada a la trampa y zona abierta k x k
     t[1][0] = LIBRE
     for f in range(2, 2 + k):
         for c in range(k):
@@ -202,8 +216,9 @@ pequeno = [
     [LIBRE, PARED, LIBRE, PARED, LIBRE],
 ]
 
-mediano = crear_laberinto_trampa(5)
-grande = crear_laberinto_trampa(6)
+# Mismos tableros que la versión de backtracking (misma trampa y dimensiones)
+mediano = crear_laberinto_trampa(5, 1000, 1000)    # 1.000 x 1.000 =   1.000.000 casillas
+grande = crear_laberinto_trampa(6, 3000, 3000)     # 3.000 x 3.000 =   9.000.000 casillas
 
 rect_ancho = [
     [LIBRE, PARED, LIBRE, LIBRE, LIBRE, LIBRE, LIBRE, LIBRE, LIBRE, LIBRE, LIBRE, PARED, LIBRE, LIBRE, LIBRE],
@@ -239,6 +254,10 @@ rect_extra_ancho = [
     [LIBRE, LIBRE, LIBRE, LIBRE, LIBRE, PARED, LIBRE, LIBRE, LIBRE, LIBRE, LIBRE, LIBRE, LIBRE, PARED, LIBRE, LIBRE, LIBRE, LIBRE, LIBRE, LIBRE, LIBRE],
 ]
 
+# Caso extremo: aquí el backtracking tardaría horas (k=7) o años (k grande);
+# divide y vencerás lo resuelve igual de rápido.
+INCLUIR_EXTREMO = True
+
 pruebas = [
     ("Pequeño (5x5)", pequeno),
     (f"Mediano ({len(mediano)}x{len(mediano[0])}, trampa 5x5)", mediano),
@@ -247,6 +266,9 @@ pruebas = [
     ("Rectangular alto (15x3)", rect_alto),
     ("Rectangular extra ancho (7x21)", rect_extra_ancho),
 ]
+
+if INCLUIR_EXTREMO:
+    pruebas.append(("EXTREMO (5000x5000, trampa 7x7)", crear_laberinto_trampa(7, 5000, 5000)))
 
 
 def main():
@@ -273,9 +295,19 @@ def main():
             tablero = copiar(laberinto)
             for x, y in camino:
                 tablero[x][y] = CAMINO
-            print("Laberinto resuelto:")
-            imprimir_laberinto(tablero)
+            if len(tablero) * len(tablero[0]) <= 400:
+                print("Laberinto resuelto:")
+                imprimir_laberinto(tablero)
+            else:
+                print("(tablero demasiado grande para imprimirlo en consola)\n")
 
+
+if __name__ == "__main__":
+    sys.setrecursionlimit(10_000_000)
+    threading.stack_size(512 * 1024 * 1024)
+    hilo = threading.Thread(target=main)
+    hilo.start()
+    hilo.join()
 
 if __name__ == "__main__":
     main()
